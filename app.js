@@ -16,6 +16,18 @@ app.get("/", (req, res) => {
 const usersRouter = require("./routers/users");
 app.use("/users", usersRouter);
 
+const booksRouter = require("./routers/books");
+app.use("/books", booksRouter);
+
+const likesRouter = require("./routers/likes");
+app.use("/likes", likesRouter);
+
+const cartRouter = require("./routers/cart");
+app.use("/cart", cartRouter);
+
+const ordersRouter = require("./routers/orders");
+app.use("/orders", ordersRouter);
+
 app.listen(port, () => {
   console.log("Server is running on port ${port}");
 });

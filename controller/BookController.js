@@ -6,18 +6,20 @@ const allBooks = (req, res) => {
 
   let offset = limit * (currentPage - 1);
 
-  let sql = "SELECT * FROM books";
+  let sql =
+    "SELECT *, (SELECT count(*) FROM likes WHERE books.id = liked_book_id) AS likes FROM books";
   let values = [];
 
   if (category_id && news) {
     sql +=
-      " WHERE category_id=? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH)AND NOW()";
+      " WHERE category_id=? AND pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()";
     values = [category_id];
   } else if (category_id) {
     sql += " WHERE category_id=?";
     values = [category_id];
   } else if (news) {
-    sql += " WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH)AND NOW()";
+    sql +=
+      " WHERE pub_date BETWEEN DATE_SUB(NOW(), INTERVAL 1 MONTH) AND NOW()";
   }
 
   sql += " LIMIT ? OFFSET ?";
@@ -35,11 +37,17 @@ const allBooks = (req, res) => {
 };
 
 const bookDetail = (req, res) => {
-  let { id } = req.params;
+  let { user_id } = req.body;
+  let book_id = req.params.id;
 
-  let sql =
-    "SELECT * FROM books LEFT JOIN category ON books.category_id = category.id WHERE books.id = ?";
-  conn.query(sql, id, (err, results) => {
+  let sql = `SELECT *, 
+      (SELECT count(*) FROM likes WHERE liked_book_id=books.id) AS likes, (SELECT EXISTS (SELECT * FROM likes WHERE user_id=? AND liked_book_id = ?)) AS liked
+      FROM books 
+      LEFT JOIN category
+      ON books.category_id = category.category_id
+      WHERE books.id=?`;
+  let values = [user_id, book_id, book_id];
+  conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
       return res.status(StatusCodes.BAD_REQUEST).end();

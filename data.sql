@@ -24,3 +24,11 @@ INSERT INTO likes (user_id, liked_book_id) VALUES(1,1);
 
 DELETE FROM likes 
 WHERE user_id = 1 AND liked_book_id = 3;
+
+INSERT INTO cartItems (book_id, quantity, user_id) VALUES (1, 1, 1);
+
+select cartItems.id, book_id, title, summary, quantity, price from cartItems LEFT JOIN books ON cartItems.book_id = books.id; 
+
+DELETE FROM cartItems WHERE id = ?;
+
+SELECT * FROM BookStore.cartItems WHERE user_id = 1 AND id IN(1,3);

@@ -1,64 +1,95 @@
-const conn = require("../mariadb");
+// const conn = require("../mariadb");
 const { StatusCodes } = require("http-status-codes");
+const mariadb = require("mysql2/promise");
 
-const order = (req, res) => {
+const order = async (req, res) => {
+  const conn = await mariadb.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root",
+    database: "BookStore",
+    dateStrings: true,
+  });
+
   const { items, delivery, totalQuantity, totalPrice, userId, firstBookTitle } =
     req.body;
 
-  let delivery_id = 2;
-  let order_id = 2;
-
+  // delivery 테이블 삽입
   let sql = "INSERT INTO delivery (address, receiver, contact) VALUES(?,?,?)";
   let values = [delivery.address, delivery.receiver, delivery.contact];
-  //   conn.query(sql, values, (err, results) => {
-  // if (err) {
-  //   console.log(err);
-  //   return res.status(StatusCodes.BAD_REQUEST).end();
-  // }
-  //
-  // delivery_id = 2;
-  // return res.status(StatusCodes.OK).json(results);
-  //   });
+  let [results] = await conn.execute(sql, values);
+  let delivery_id = results.insertId;
 
-  sql = `INSERT INTO orders (book_title, total_quantity, total_price, user_id, delivery_id) 
-            VALUES (?,?,?,?,?);`;
-  //   values = [firstBookTitle, totalQuantity, totalPrice, userId, delivery_id];
-  //   conn.query(sql, values, (err, results) => {
-  //     if (err) {
-  //       console.log(err);
-  //       return res.status(StatusCodes.BAD_REQUEST).end();
-  //     }
+  // orders 테이블 삽입
+  sql = `INSERT INTO orders (book_title, total_quantity, total_price, user_id, delivery_id)
+  VALUES (?,?,?,?,?);`;
+  values = [firstBookTitle, totalQuantity, totalPrice, userId, delivery_id];
+  [results] = await conn.execute(sql, values);
+  let order_id = results.insertId;
 
-  //     order_id = results.insertId;
-  //     console.log(order_id);
+  // items를 가지고, 장바구니에서 book_id, quantity 조회
+  sql = "SELECT book_id, quantity FROM cartItems WHERE id IN (?)";
+  let [orderItems, fiels] = await conn.query(sql, [items]);
 
-  //     return res.status(StatusCodes.OK).json(results);
-  //   });
-
+  // orderedBook 테이블 삽입
   sql = `INSERT INTO orderedBook (order_id, book_id, quantity)
-        VALUES ?;`;
+  VALUES ?;`;
 
   // itmes.. 배열 : 요소들을 하나씩 꺼내서 (foreach문 돌려서) >
   values = [];
-  items.forEach((item) => {
+  orderItems.forEach((item) => {
     values.push([order_id, item.book_id, item.quantity]);
   });
 
-  conn.query(sql, [values], (err, results) => {
-    if (err) {
-      console.log(err);
-      return res.status(StatusCodes.BAD_REQUEST).end();
-    }
-    return res.status(StatusCodes.OK).json(results);
+  results = await conn.query(sql, [values]);
+
+  let result = await deleteCartItems(conn, items);
+
+  return res.status(StatusCodes.OK).json(result);
+};
+
+const deleteCartItems = async (conn, items) => {
+  let sql = `DELETE FROM cartItems WHERE id in (?)`;
+
+  let result = await conn.query(sql, [items]);
+  return result;
+};
+
+const getOrders = async (req, res) => {
+  const conn = await mariadb.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root",
+    database: "BookStore",
+    dateStrings: true,
   });
+
+  let sql = `select orders.id, created_at, address, receiver, contact, book_title, total_quantity, total_price,
+    from orders LEFT JOIN delivery
+    ON orders.delivery_id = delivery.id;`;
+
+  let [rows, fields] = await conn.query(sql);
+  return res.status(StatusCodes.OK).json(rows);
 };
 
-const getOrders = (req, res) => {
-  res.json({ meesage: "hello" });
-};
+const getOrderDetail = async (req, res) => {
+  const { id } = req.params;
 
-const getOrderDetail = (req, res) => {
-  res.json({ meesage: "hello" });
+  const conn = await mariadb.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root",
+    database: "BookStore",
+    dateStrings: true,
+  });
+
+  let sql = `select book_id, title, author, price, quantity
+    from orderedBook LEFT JOIN books
+    ON orderedBook.book_id = books.id
+    WHERE order_id=?`;
+
+  let [rows, fields] = await conn.query(sql, [id]);
+  return res.status(StatusCodes.OK).json(rows);
 };
 
 module.exports = {

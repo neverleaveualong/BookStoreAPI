@@ -1,8 +1,7 @@
 const jwt = require("jsonwebtoken");
 const conn = require("../mariadb");
+const ensureAuthorization = require("../auth");
 const { StatusCodes } = require("http-status-codes");
-const dotenv = require("dotenv");
-dotenv.config();
 
 const addLike = (req, res) => {
   const book_id = req.params.id;
@@ -58,22 +57,4 @@ const removeLike = (req, res) => {
   }
 };
 
-function ensureAuthorization(req, res) {
-  try {
-    let receivedJwt = req.headers["authorization"];
-    console.log("received jwt : ", receivedJwt);
-
-    let decodedJwt = jwt.verify(receivedJwt, process.env.PRIVATE_KEY);
-    console.log(decodedJwt);
-
-    return decodedJwt;
-  } catch (err) {
-    console.log(err.name);
-    console.log(err.message);
-
-    return res.status(StatusCodes.UNAUTHORIZED).json({
-      message: "로그인 세션이 만료되었습니다. 다시 로그인 하세요.",
-    });
-  }
-}
 module.exports = { addLike, removeLike };

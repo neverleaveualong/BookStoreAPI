@@ -31,27 +31,35 @@ const allBooks = (req, res) => {
   conn.query(sql, values, (err, results) => {
     if (err) {
       console.log(err);
-      // return res.status(StatusCodes.BAD_REQUEST).end();
-    }
-    console.log(results);
-    if (results.length) allBooksRes.books = results;
-    else return res.status(StatusCodes.NOT_FOUND).end();
-  });
-
-  sql = "SELECT found_rows()";
-  conn.query(sql, (err, results) => {
-    if (err) {
-      console.log(err);
       return res.status(StatusCodes.BAD_REQUEST).end();
     }
+    console.log(results);
 
-    let pagination = {};
-    pagination.currentPage = parseInt(currentPage);
-    pagination.totalCount = results[0]["found_rows()"];
+    if (!results.length) {
+      return res.status(StatusCodes.NOT_FOUND).end();
+    }
 
-    allBooksRes.pagination = pagination;
+    results.map(function (result) {
+      result.pubDate = result.pub_date;
+      delete result.pub_date;
+    });
+    allBooksRes.books = results;
 
-    return res.status(StatusCodes.OK).json(allBooksRes);
+    // ★ 첫 번째 쿼리 성공했을 때만 두 번째 쿼리 실행
+    conn.query("SELECT found_rows()", (err2, results2) => {
+      if (err2) {
+        console.log(err2);
+        return res.status(StatusCodes.BAD_REQUEST).end();
+      }
+
+      let pagination = {};
+      pagination.currentPage = parseInt(currentPage);
+      pagination.totalCount = results2[0]["found_rows()"];
+
+      allBooksRes.pagination = pagination;
+
+      return res.status(StatusCodes.OK).json(allBooksRes);
+    });
   });
 };
 

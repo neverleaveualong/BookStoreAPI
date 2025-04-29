@@ -25,7 +25,11 @@ const join = (req, res) => {
       return res.status(StatusCodes.BAD_REQUEST).end();
     }
 
-    return res.status(StatusCodes.CREATED).json(results);
+    if (results.affectedRows) {
+      return res.status(StatusCodes.CREATED).json(results);
+    } else {
+      return res.status(StatusCodes.BAD_REQUEST).end();
+    }
   });
 };
 
@@ -45,6 +49,8 @@ const login = (req, res) => {
       .pbkdf2Sync(password, loginUser.salt, 10000, 10, "sha512")
       .toString("base64");
 
+    console.log(hashPassword);
+
     if (loginUser && loginUser.password == hashPassword) {
       const token = jwt.sign(
         {
@@ -53,7 +59,7 @@ const login = (req, res) => {
         },
         process.env.PRIVATE_KEY,
         {
-          expiresIn: "10m",
+          expiresIn: "24h",
           issuer: "woohyun",
         }
       );
@@ -63,7 +69,7 @@ const login = (req, res) => {
       });
       console.log(token);
 
-      return res.status(StatusCodes.OK).json(results);
+      return res.status(StatusCodes.OK).json({ ...results[0], token: token });
     } else {
       return res.status(StatusCodes.UNAUTHORIZED).end();
     }

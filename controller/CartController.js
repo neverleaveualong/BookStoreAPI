@@ -15,21 +15,11 @@ const addToCart = (req, res) => {
     });
   } else if (authorization instanceof jwt.JsonWebTokenError) {
     return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "잘못된 토근입니다.",
-    });
-  } else {
-    let sql = `INSERT INTO cartItems (book_id, quantity, user_id) VALUES (?,?,?)`;
-    let values = [book_id, quantity, authorization.id];
-    conn.query(sql, values, (err, results) => {
-      if (err) {
-        console.log(err);
-        return res.status(StatusCodes.BAD_REQUEST).end();
-      }
-
-      return err;
+      message: "잘못된 토큰입니다.",
     });
   }
 
+  // ✅ 여기에만 INSERT 로직 남기기
   let sql = "INSERT INTO cartItems (book_id, quantity, user_id) VALUES(?,?,?)";
   let values = [book_id, quantity, authorization.id];
   conn.query(sql, values, (err, results) => {
